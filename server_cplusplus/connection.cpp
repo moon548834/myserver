@@ -1,5 +1,6 @@
 #include "connection.h"
 #include "head.h"
+#include <boost/filesystem.hpp>
 Connection::Connection() {
 	create_connection();
 }

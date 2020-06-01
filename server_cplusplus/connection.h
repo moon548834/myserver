@@ -1,6 +1,5 @@
 #include "head.h"
 #include <cerrno>
-#include <boost/filesystem.hpp> 
 
 class Connection {
 	public:
