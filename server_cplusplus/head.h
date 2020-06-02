@@ -5,3 +5,5 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <regex>
+
+#define COUT(x) std::cout << x << std::endl;

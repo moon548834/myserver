@@ -1,6 +1,7 @@
 #include "head.h"
 #include "connection.h"
 #include "server.h"
+#include "debug.h"
 
 class Server {
 	public:
@@ -8,6 +9,7 @@ class Server {
 		void server_attr_init();
 		void server_bind_sock();
 		void server_listen_sock();
+		Connection* get_cur_conn();
 		int accept_conn();
 		void close_conn();
 		Server();
@@ -28,6 +30,9 @@ Server::Server() {
 	this->init();
 }
 
+Connection* Server:: get_cur_conn() {
+	return cur;
+}
 
 void Server::server_attr_init() {
 	this->server.sin_family = AF_INET;
@@ -65,14 +70,10 @@ int main() {
 	server->server_bind_sock();
 	server->server_listen_sock();
 	int new_sock;
-	char *char_buf = new char[3000];
-	std::string buf;
 	while ((new_sock = server->accept_conn())) {
-		int rec_message = read(new_sock, char_buf, 2048);
-		std::regex split_re("\r\n");
-		std::vector<std::string> request_message(std::sregex_token_iterator(buf.begin(), buf.end(), split_re, -1), std::sregex_token_iterator());
-		std::string message = "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8 \r\n\r\n<h1>Hello!</h1>";
-		write(new_sock, message.c_str(), message.size());
+		Connection* cur = server->get_cur_conn();
+		COUT("connected");
+		cur->http_handler();
 		server->close_conn();
 	}
 	return 0;
