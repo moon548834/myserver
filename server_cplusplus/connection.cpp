@@ -11,7 +11,15 @@ Connection::Connection(int sock) {
 int Connection::create_connection() {
 	sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock == -1) {
-		printf("Can not create a new socket\n");
+		perror("socket");
+		exit(-1);
+	}
+	// handle bind failed
+	int val = 1;
+	int res = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (void *)&val, sizeof(int));
+	if (res == -1) {
+		perror("setsockopt");
+		exit(-1);
 	}
 	return sock;
 }
@@ -29,23 +37,24 @@ void Connection:: http_handler() {
 	int rec_message_cnt = read(sock, char_buf, 2048);
 	if (rec_message_cnt != 0) {
 		std::string buf(char_buf);
-		COUT(buf);
 		std::regex split_body("\r\n");
 		std::vector<std::string> request_message(std::sregex_token_iterator(buf.begin(), buf.end(), split_body, -1), std::sregex_token_iterator());
 		std::regex split_line(" ");
+		if (request_message.size() == 0) LOG("request_message is empty!");
 		std::vector<std::string> request_first_line(std::sregex_token_iterator(request_message[0].begin(), request_message[0].end(), split_line, -1), std::sregex_token_iterator());
 		//std::cout << request_first_line[1] << std::endl;
+		if (request_first_line.size() == 0) LOG("first line is empty!");
 		std::string filename = request_first_line[1];
 		std::string message = get_http_response(request_first_line[1]);
-		std::cout << message << std::endl;
 		write(sock, message.c_str(), message.size());
 	}
 }
 
 std::string Connection:: get_http_response(std::string filename) {
-	COUT(filename);
+	//COUT(filename);
 	if (filename == "/") filename = default_filename;
 	std::string dir = root_dir + filename;
+	LOG(dir);
 	std::string http_message_head;
 	std::string http_message_body;
 	if (boost::filesystem::exists(dir)) {
@@ -62,18 +71,12 @@ std::string Connection:: get_http_response(std::string filename) {
 
 std::string Connection:: get_file_content(std::string filedir) {
 	//firedir has confirmed to be available
-	//a fast way for reading file
-	//according to this link: 
-	//http://insanecoding.blogspot.com/2011/11/how-to-read-in-file-in-c.html
 	std::ifstream in;
-	in.open(filedir, std::ios::in);
-	std::string content;
-	in.seekg(0, std::ios::end);
-	content.resize(in.tellg());
-    in.seekg(0, std::ios::beg);
-    in.read(&content[0], content.size());
-    in.close();
-    return(content);
+	in.open(filedir);
+	std::stringstream strStream;
+	strStream << in.rdbuf();
+	in.close();
+    return(strStream.str());
 }
 
 

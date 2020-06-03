@@ -1,7 +1,6 @@
 #include "head.h"
 #include "connection.h"
 #include "server.h"
-#include "debug.h"
 
 class Server {
 	public:
@@ -37,7 +36,7 @@ Connection* Server:: get_cur_conn() {
 void Server::server_attr_init() {
 	this->server.sin_family = AF_INET;
 	this->server.sin_addr.s_addr = INADDR_ANY;
-	this->server.sin_port = htons(8888);
+	this->server.sin_port = htons(80);
 }
 
 void Server::server_bind_sock() {
@@ -72,7 +71,6 @@ int main() {
 	int new_sock;
 	while ((new_sock = server->accept_conn())) {
 		Connection* cur = server->get_cur_conn();
-		COUT("connected");
 		cur->http_handler();
 		server->close_conn();
 	}

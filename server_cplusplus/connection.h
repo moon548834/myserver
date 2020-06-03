@@ -1,7 +1,6 @@
 #include "head.h"
 #include <cerrno>
 #include <boost/filesystem.hpp>
-#include <fstream>
 
 class Connection {
 	public:
@@ -23,7 +22,7 @@ const std::string http_message_head_200=
 const std::string http_message_head_404= 
 	"HTTP/1.1 404 Not Found\r\nContent-Type: text/html; charset=utf-8\r\n\r\n";
 
-const std::string root_dir = "../front_end/";
+const std::string root_dir = "/root/work/myserver/front_end/";
 
 const std::string default_filename = "index.html";
 const std::string not_found_filename = "404.html";
