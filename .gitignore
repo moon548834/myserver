@@ -1,2 +1,3 @@
 *.o
-./server_cpluplus/server
+./server_cplusplus/server
+./server_cplusplus/run.sh
