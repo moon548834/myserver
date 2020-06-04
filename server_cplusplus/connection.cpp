@@ -48,6 +48,7 @@ void Connection:: http_handler() {
 		std::string message = get_http_response(request_first_line[1]);
 		write(sock, message.c_str(), message.size());
 	}
+	free(char_buf);
 }
 
 std::string Connection:: get_http_response(std::string filename) {
