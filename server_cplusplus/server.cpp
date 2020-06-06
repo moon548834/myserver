@@ -51,7 +51,6 @@ void Server::server_listen_sock() {
 
 int Server::accept_conn() {
 	int new_sock = accept(cur->get_sock(), NULL, NULL);
-	if (new_sock == 0) return 0;
 	Connection *new_conn = new Connection(new_sock);
 	cur = new_conn;
 	con_vec.push_front(cur);

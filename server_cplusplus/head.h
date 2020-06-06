@@ -11,7 +11,7 @@
 #define COUT(x) std::cout << x << std::endl;
 #define LOG(x) do { \
 	std::ofstream f;		\
-	f.open("./log"); \
+	f.open("log"); \
 	f << x << std::endl; \
 	f.close();	\
 }while(0)
