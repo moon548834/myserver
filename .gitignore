@@ -1,3 +1,4 @@
 *.o
-./server_cplusplus/server
-./server_cplusplus/run.sh
+/server_cplusplus/server
+/select_demo/server
+/select_demo/client
