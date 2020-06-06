@@ -32,15 +32,18 @@ int main(int argc, char *argv[]) {
 		perror("connect");
 		exit(-1);
 	}
-	int max_fd = sock + 1;
+	int sock_stdin = fileno(stdin);
+	int max_fd = sock;
+	if (sock_stdin > sock) max_fd = sock_stdin;
 	fd_set client_set;
 	char writebuffer[1024];
 	char readbuffer[1024];
 	memset(writebuffer, 0, sizeof(writebuffer));
-	strcpy(writebuffer, "test");
 	memset(readbuffer, 0, sizeof(readbuffer));
 	while (1) {
 		FD_ZERO(&client_set);
+		FD_SET(sock, &client_set);
+		FD_SET(sock_stdin, &client_set);
 		int ret = select(max_fd + 1, &client_set, NULL, NULL, NULL);
 		if (ret < 0) {
 			perror("seletct");
@@ -60,11 +63,12 @@ int main(int argc, char *argv[]) {
 					perror("read");
 					exit(-1);
 				}
-				puts(readbuffer);
+				printf("%s",readbuffer);
 				memset(readbuffer, 0, sizeof(readbuffer));
 			}
-			else {
-				sleep(2);
+			else if (FD_ISSET(sock_stdin, &client_set)) {
+				read(sock_stdin, writebuffer, sizeof(writebuffer));
+				printf("stdin: %s#", writebuffer);
 				int write_ret = write(sock, writebuffer, strlen(writebuffer));
 				if (write_ret == 0) {
 					break;
@@ -73,6 +77,7 @@ int main(int argc, char *argv[]) {
 					perror("write");
 					break;
 				}
+				memset(writebuffer, 0, sizeof(writebuffer));
 			}
 		}
 	}

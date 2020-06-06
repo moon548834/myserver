@@ -89,11 +89,12 @@ REPEAT_ACCEPT:
 			}
 			else {
 				int i = 0;
-				char *buffer = (char *)malloc(BUFF_SIZE * sizeof(char));
 				for (; i < CLIENT_NUM; i++) {
 					int client_sock = client_fds[i];
 					if (client_sock < 0) continue;
 					if (FD_ISSET(client_sock, &server_sock_set)) {
+						char *buffer = (char *)malloc(BUFF_SIZE * sizeof(char));
+						memset(buffer,0,sizeof(buffer)); // must 
 						int ret = read(client_sock, buffer, BUFF_SIZE);
 						if (ret < 0) {
 							perror("read");
@@ -105,12 +106,12 @@ REPEAT_ACCEPT:
 							client_fds[i] = -1;
 						}
 						else { 
-							printf("message recieved %s\n", buffer);
-							write(client_sock, buffer, strlen(buffer) + 1);
+							printf("message recieved %s", buffer);
+							write(client_sock, buffer, strlen(buffer));
 						}
+						free(buffer);
 					}
 				}
-				free(buffer);
 			}
 		}
 	}
