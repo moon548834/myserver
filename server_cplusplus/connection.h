@@ -2,6 +2,22 @@
 #include <cerrno>
 #include <boost/filesystem.hpp>
 
+class Server {
+	public:
+		void init();
+		void server_attr_init();
+		void server_bind_sock();
+		void server_listen_sock();
+		Connection* get_cur_conn();
+		int accept_conn();
+		void close_conn();
+		Server();
+	private:
+		sockaddr_in server;
+		std::deque<Connection*> con_vec;
+		Connection* cur;
+};
+
 class Connection {
 	public:
 		int create_connection();

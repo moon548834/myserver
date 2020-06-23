@@ -9,49 +9,43 @@
 #include <string.h>
 #include <assert.h>
 #include <fcntl.h>
+#include <pthread.h>
+#include <vector>
+#include "http_conn.h"
+#include "thread_pool.h"
+#include "locker.h"
 
 #define MAX_EVENT_NUMBER 10
+#define MAX_CLIENT_FD	1024
 
-void setnonblocking(int fd) {
-	int old_option = fcntl(fd, F_GETFL);
-	int new_option = old_option | O_NONBLOCK;
-	fcntl(fd, F_SETFL, new_option);
-	return;
-}
-
-void addfd2epoll(int epollfd, int fd) {
-	setnonblocking(fd);
-	epoll_event event;
-	event.data.fd = fd;
-	event.events = EPOLLIN | EPOLLET;
-	epoll_ctl(epollfd, EPOLL_CTL_ADD, fd, &event);
-}
-
+extern int addfd( int epollfd, int fd, bool one_shot );
+extern int removefd( int epollfd, int fd );
 
 int main(int argc, char *argv[]) {
 	if (argc <= 2) {
-		printf("usage [ip_addr] [port]");
+		printf("usage [ip_addr] [port]\n");
 		return 0;
 	}
 	int port = atoi(argv[2]);
 	int ret;
-	vector<>
+	ThreadPool<HttpConn> *http_thread_pool = new ThreadPool<HttpConn>(4);
+	std::vector<HttpConn> clients(MAX_CLIENT_FD);
 	sockaddr_in address;
 	memset(&address, 0, sizeof(address));
 	address.sin_family = AF_INET;
 	address.sin_port = htons(port);
-	inet_pton(AF_INET, (const char*)argv[1],&address.sin_addr);
+	address.sin_addr.s_addr = INADDR_ANY; 
 	int listenfd = socket(PF_INET, SOCK_STREAM, 0);
 	assert(listenfd != -1);
-	assert(epollfd != -1);
 	ret = bind(listenfd, (sockaddr*)&address, sizeof(address));
 	assert(ret != -1);
 	ret = listen(listenfd, 5);
 	assert(ret != -1);
 	int epollfd = epoll_create(5);
 	assert(epollfd != -1);
-	addfd2epoll(epollfd, listenfd);
+	addfd(epollfd, listenfd, false);
 	epoll_event events[MAX_EVENT_NUMBER];
+	HttpConn::m_epollfd = epollfd;
 	while (true) {
 		int number = epoll_wait(epollfd, events, MAX_EVENT_NUMBER, 0);
 		for (int i = 0; i < number; i++) {
@@ -62,7 +56,19 @@ int main(int argc, char *argv[]) {
 				socklen_t newaddress_len = sizeof(newaddress);
 				int connfd = accept(curfd, (struct sockaddr*)&newaddress, &newaddress_len);
 				assert(connfd != -1);
+				std::cout << "connfd:" << connfd << std::endl;
+				clients[connfd].init(newaddress, connfd);
+			}
+			else if (events[i].events & EPOLLIN) {
+				if (clients[curfd].read() > 0) http_thread_pool->add(&clients[curfd]);
+			}
+			else if (events[i].events & EPOLLRDHUP) {
+				clients[curfd].close_conn();
+			}
+			else if (events[i].events & EPOLLOUT) {
+				clients[curfd].write();
 			}
 		}
 	}
+	return 0;
 }

@@ -1,3 +1,4 @@
+LDFLAGS=-lboost_system -lboost_filesystem
 CC=g++
 CFLAGS=-Wall -std=c++11 
 LDFLAGS=-lboost_system -lboost_filesystem
