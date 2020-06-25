@@ -12,7 +12,7 @@ int setnonblocking( int fd ) {
 void addfd( int epollfd, int fd, bool one_shot ) {
     epoll_event event;
     event.data.fd = fd;
-    event.events = EPOLLIN | EPOLLET | EPOLLRDHUP;
+    event.events = EPOLLIN | EPOLLET ;
     if( one_shot ) {
         event.events |= EPOLLONESHOT;
     }
@@ -29,12 +29,13 @@ void removefd( int epollfd, int fd ) {
 void modfd( int epollfd, int fd, int ev ) {
     epoll_event event;
     event.data.fd = fd;
-    event.events = ev | EPOLLET | EPOLLONESHOT | EPOLLRDHUP;
+    event.events = ev | EPOLLET | EPOLLONESHOT ;
     epoll_ctl( epollfd, EPOLL_CTL_MOD, fd, &event );
 }
 
 
 HttpConn::HttpConn() {
+	connfd = -1;
 }
 
 HttpConn::~HttpConn() {
@@ -54,9 +55,10 @@ void HttpConn::close_conn() {
 }
 
 void HttpConn::handle(){
+	std::cout << '#' << read_buf << std::endl;
 	int read_ret = handle_readreq();
+	printf("read_ret:%d\n", read_ret);
 	if (read_ret == -1) {
-		modfd(m_epollfd, connfd, EPOLLIN);
 		close_conn();
 	}
 	else {
@@ -77,7 +79,6 @@ int HttpConn::handle_readreq() {
 }
 
 std::string HttpConn:: get_http_response(std::string filename) {
-	std::cout << filename << std::endl;
 	if (filename == "/" || filename == "\\") filename = default_filename;
 	std::string dir = root_dir + filename;
 	std::string http_message_head;
@@ -117,13 +118,13 @@ void HttpConn::write() {
 				else if (errno == EINTR) continue;
 				else  {
 					close_conn();
-					break;
+					return;
 				}
 			}
 		}
 		else if (bytes_write == 0) {
 			close_conn();
-			break;
+			return;
 		}
 		write_buf_ptr += bytes_write;
 		writes_size -= bytes_write;
@@ -141,12 +142,15 @@ int HttpConn::read() {
 			}
 			else if(errno == EINTR)	continue;
 			else {
+				std::cout << "error other errno" << std::endl;
 				close_conn();
-				break;
+				return 0;
 			}
 		}
 		else if (bytes_read == 0) {
+			if (read_buf.size() > 0) break;
 			close_conn();
+			return 0;
 		}
 		read_buf.append(buffer.cbegin(), buffer.cend());
 	}

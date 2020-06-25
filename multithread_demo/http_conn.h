@@ -15,6 +15,7 @@
 class HttpConn {
 	public:
 		static int m_epollfd;
+		int connfd;
 		HttpConn();
 		~HttpConn();
 		void close_conn();
@@ -27,7 +28,6 @@ class HttpConn {
 		std::string read_buf;
 		std::string write_buf;
 		sockaddr_in address;
-		int connfd;
 		int handle_readreq();
 		int handle_writereq();
 		std::string get_http_response(std::string filename);	

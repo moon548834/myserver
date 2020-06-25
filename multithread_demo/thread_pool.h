@@ -62,7 +62,6 @@ void ThreadPool<T>::run() {
 			continue;
 		}
 		T* front = q.front();
-		std::cout << "qsize" << q.size() << std::endl;
 		q.pop_front();
 		queue_mutex->unlock();
 		if (!front) continue;

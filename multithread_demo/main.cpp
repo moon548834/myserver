@@ -22,11 +22,13 @@ extern int addfd( int epollfd, int fd, bool one_shot );
 extern int removefd( int epollfd, int fd );
 
 int main(int argc, char *argv[]) {
+#if 0
 	if (argc <= 2) {
 		printf("usage [ip_addr] [port]\n");
 		return 0;
 	}
-	int port = atoi(argv[2]);
+#endif
+	int port = 80;
 	int ret;
 	ThreadPool<HttpConn> *http_thread_pool = new ThreadPool<HttpConn>(4);
 	std::vector<HttpConn> clients(MAX_CLIENT_FD);
@@ -50,25 +52,33 @@ int main(int argc, char *argv[]) {
 		int number = epoll_wait(epollfd, events, MAX_EVENT_NUMBER, 0);
 		for (int i = 0; i < number; i++) {
 			int curfd = events[i].data.fd;
+			if (events[i].events & EPOLLOUT) printf("[step 4.0]\n");
 			if(curfd == listenfd) {
 				struct sockaddr_in newaddress;
 				memset(&newaddress, 0, sizeof(newaddress));
 				socklen_t newaddress_len = sizeof(newaddress);
 				int connfd = accept(curfd, (struct sockaddr*)&newaddress, &newaddress_len);
 				assert(connfd != -1);
-				std::cout << "connfd:" << connfd << std::endl;
+				std::cout << connfd << std::endl;
+				std::cout << clients[connfd].connfd << std::endl;
 				clients[connfd].init(newaddress, connfd);
+				printf("[step 1] %d have listened\n", connfd);
 			}
 			else if (events[i].events & EPOLLIN) {
-				if (clients[curfd].read() > 0) http_thread_pool->add(&clients[curfd]);
-			}
-			else if (events[i].events & EPOLLRDHUP) {
-				clients[curfd].close_conn();
+				printf("[step 2] %d requested\n", curfd);
+				if (clients[curfd].read() > 0) {
+					printf("[step 3]we have read more than one word\n");
+					http_thread_pool->add(&clients[curfd]);
+				}
 			}
 			else if (events[i].events & EPOLLOUT) {
+				printf("[step 4] %d goto write\n", curfd);
 				clients[curfd].write();
 			}
 		}
 	}
+	close(epollfd);
+	close(listenfd);
+	delete http_thread_pool;
 	return 0;
 }
