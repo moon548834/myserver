@@ -30,8 +30,9 @@ int main(int argc, char *argv[]) {
 #endif
 	int port = 80;
 	int ret;
-	ThreadPool<HttpConn> *http_thread_pool = new ThreadPool<HttpConn>(4);
+	ThreadPool<HttpConn> *http_thread_pool = new ThreadPool<HttpConn>(2);
 	std::vector<HttpConn> clients(MAX_CLIENT_FD);
+	printf("");
 	sockaddr_in address;
 	memset(&address, 0, sizeof(address));
 	address.sin_family = AF_INET;
@@ -57,23 +58,19 @@ int main(int argc, char *argv[]) {
 				struct sockaddr_in newaddress;
 				memset(&newaddress, 0, sizeof(newaddress));
 				socklen_t newaddress_len = sizeof(newaddress);
-				int connfd = accept(curfd, (struct sockaddr*)&newaddress, &newaddress_len);
-				assert(connfd != -1);
-				std::cout << connfd << std::endl;
-				std::cout << clients[connfd].connfd << std::endl;
-				clients[connfd].init(newaddress, connfd);
-				printf("[step 1] %d have listened\n", connfd);
+				int connfd = 0;
+				while((connfd = accept(curfd, (struct sockaddr*)&newaddress, &newaddress_len)) > 0) {
+					assert(connfd != -1);
+					std::cout << connfd << std::endl;
+					std::cout << clients[connfd].connfd << std::endl;
+					clients[connfd].init(connfd);
+				}
 			}
 			else if (events[i].events & EPOLLIN) {
 				printf("[step 2] %d requested\n", curfd);
 				if (clients[curfd].read() > 0) {
-					printf("[step 3]we have read more than one word\n");
 					http_thread_pool->add(&clients[curfd]);
 				}
-			}
-			else if (events[i].events & EPOLLOUT) {
-				printf("[step 4] %d goto write\n", curfd);
-				clients[curfd].write();
 			}
 		}
 	}

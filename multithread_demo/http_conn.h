@@ -20,7 +20,7 @@ class HttpConn {
 		~HttpConn();
 		void close_conn();
 		void handle();
-		void init(sockaddr_in address, int connfd);
+		void init(int connfd);
 		int read();
 		void write();
 		

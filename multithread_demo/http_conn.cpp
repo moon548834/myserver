@@ -41,8 +41,7 @@ HttpConn::HttpConn() {
 HttpConn::~HttpConn() {
 }
 
-void HttpConn::init(sockaddr_in address, int connfd) {
-	this->address = address;
+void HttpConn::init(int connfd) {
 	this->connfd = connfd;
 	read_buf.clear();
 	write_buf.clear();
@@ -55,14 +54,9 @@ void HttpConn::close_conn() {
 }
 
 void HttpConn::handle(){
-	std::cout << '#' << read_buf << std::endl;
 	int read_ret = handle_readreq();
-	printf("read_ret:%d\n", read_ret);
 	if (read_ret == -1) {
 		close_conn();
-	}
-	else {
-		modfd(m_epollfd, connfd, EPOLLOUT);
 	}
 }
 
@@ -75,6 +69,7 @@ int HttpConn::handle_readreq() {
 	if (request_first_line.size() == 0) return -1;
 	std::string filename = request_first_line[1];
 	write_buf = get_http_response(request_first_line[1]);
+	this->write();
 	return 0;
 }
 
@@ -106,14 +101,14 @@ std::string HttpConn:: get_file_content(std::string filedir) {
 }
 
 void HttpConn::write() {
-	const char *write_buf_ptr = write_buf.c_str();
+	const char *write_buf_ptr = write_buf.c_str(); 
 	int writes_size = write_buf.size();
 	int bytes_write = 0;
 	while(writes_size > 0) {
 		if ((bytes_write = send(connfd, write_buf_ptr, writes_size, 0)) <= 0) {
 			if (bytes_write < 0) {
 				if (errno == EAGAIN || errno == EWOULDBLOCK) {
-					break;
+					continue;
 				}
 				else if (errno == EINTR) continue;
 				else  {
@@ -121,11 +116,13 @@ void HttpConn::write() {
 					return;
 				}
 			}
+			else if (bytes_write == 0) {
+				std::cout << "#000#" << std::endl;
+				close_conn();
+				return;
+			}
 		}
-		else if (bytes_write == 0) {
-			close_conn();
-			return;
-		}
+		std::cout << bytes_write << " bytes sent\n" << std::endl;
 		write_buf_ptr += bytes_write;
 		writes_size -= bytes_write;
 	}
@@ -142,14 +139,12 @@ int HttpConn::read() {
 			}
 			else if(errno == EINTR)	continue;
 			else {
-				std::cout << "error other errno" << std::endl;
 				close_conn();
 				return 0;
 			}
 		}
 		else if (bytes_read == 0) {
 			if (read_buf.size() > 0) break;
-			close_conn();
 			return 0;
 		}
 		read_buf.append(buffer.cbegin(), buffer.cend());
